@@ -1,0 +1,40 @@
+[project]
+name = "app"
+version = "0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.12.*"
+dependencies = [
+    "boto3>=1.38.8",
+    "fastapi>=0.115.12",
+    "httpx>=0.28.1",
+    "mangum>=0.19.0",
+    "pydantic>=2.11.4",
+    "uvicorn>=0.34.2",
+]
+
+[dependency-groups]
+dev = [
+    "fastapi[standard]>=0.115.12",
+    "mypy>=1.15.0",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "ruff>=0.11.8",
+]
+
+[build-system]
+requires = ["uv_build>=0.6.6,<0.7"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
+
+[tool.ruff]
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
