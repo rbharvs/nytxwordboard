@@ -188,10 +188,10 @@ async def update_user_metadata(metadata_item: UserMetadataItem) -> bool:
     try:
         # Convert model to dictionary and create the item
         metadata_dict = metadata_item.model_dump(by_alias=True)
-        
+
         # Convert solve_rate to Decimal for DynamoDB compatibility
-        if 'solve_rate' in metadata_dict:
-            metadata_dict['solve_rate'] = Decimal(str(metadata_dict['solve_rate']))
+        if "solve_rate" in metadata_dict:
+            metadata_dict["solve_rate"] = Decimal(str(metadata_dict["solve_rate"]))
 
         # Create the DynamoDB item
         item = {
@@ -224,11 +224,11 @@ async def create_user_if_not_exists(metadata_item: UserMetadataItem) -> bool:
     try:
         # Convert model to dictionary and create the item
         metadata_dict = metadata_item.model_dump(by_alias=True)
-        
+
         # Convert solve_rate to Decimal for DynamoDB compatibility
-        if 'solve_rate' in metadata_dict:
-            metadata_dict['solve_rate'] = Decimal(str(metadata_dict['solve_rate']))
-            
+        if "solve_rate" in metadata_dict:
+            metadata_dict["solve_rate"] = Decimal(str(metadata_dict["solve_rate"]))
+
         # Create the DynamoDB item
         item = {
             "PK": f"USER#{metadata_item.user_id}",
@@ -255,7 +255,7 @@ async def create_user_if_not_exists(metadata_item: UserMetadataItem) -> bool:
 async def get_all_user_ids() -> List[str]:
     """
     Retrieves all user IDs from the DynamoDB table.
-    
+
     Returns:
         List of user IDs
     """
@@ -267,21 +267,21 @@ async def get_all_user_ids() -> List[str]:
             FilterExpression="begins_with(PK, :prefix) AND SK = :metadata",
             ExpressionAttributeValues={
                 ":prefix": {"S": "USER#"},
-                ":metadata": {"S": "METADATA"}
+                ":metadata": {"S": "METADATA"},
             },
-            ProjectionExpression="userId"
+            ProjectionExpression="userId",
         )
-        
+
         # Extract user IDs from results
         items = response.get("Items", [])
         for item in items:
             user_id = dynamodb_to_python(item).get("userId")
             if user_id:
                 user_ids.append(str(user_id))
-                
+
         logger.info(f"Retrieved {len(user_ids)} user IDs from database")
         return user_ids
-        
+
     except Exception as e:
         logger.error(f"Error retrieving user IDs: {e}")
         return []
