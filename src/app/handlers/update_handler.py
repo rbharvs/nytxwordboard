@@ -114,15 +114,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # Always fetch all users from the database
     logger.info("Fetching all users from database")
     user_ids = asyncio.run(database.get_all_user_ids())
-    
+
     if not user_ids:
         logger.warning("No users found in database")
         return {
-            "statusCode": 200, 
-            "body": json.dumps({
-                "message": "No users found in database",
-                "total_users": 0
-            })
+            "statusCode": 200,
+            "body": json.dumps(
+                {"message": "No users found in database", "total_users": 0}
+            ),
         }
 
     # Run the async processing
