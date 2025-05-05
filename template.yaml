@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  NYT Crossword Leaderboard Serverless Application
+
+Parameters:
+  AppEnvironment:
+    Type: String
+    Default: Dev # Default environment to 'dev'
+    Description: Environment name (e.g., dev, prod) used for resource naming.
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256 # Adjust as needed
+    Architectures: [ x86_64 ] # Or arm64 if your base image supports it
+
+Resources:
+  # --- DynamoDB Table ---
+  LeaderboardTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      TableName: !Sub LeaderboardTable-${AppEnvironment}
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: gsi1_pk
+          AttributeType: S
+        - AttributeName: gsi1_sk
+          AttributeType: N
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: DateLeaderboardIndex
+          KeySchema:
+            - AttributeName: gsi1_pk
+              KeyType: HASH
+            - AttributeName: gsi1_sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - userId
+              - date
+
+  # --- API Function (FastAPI via Mangum) ---
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Sub LeaderboardTable-${AppEnvironment}
+          DYNAMODB_GSI_NAME: DateLeaderboardIndex
+          APP_ENVIRONMENT: !Ref AppEnvironment
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+      ImageConfig:
+        Command: ["app.handlers.api_handler.handler"]
+      # --- Use SAM Policy Template ---
+      Policies:
+        - DynamoDBReadPolicy: # Grants Read access to the table and its indexes
+            TableName: !Ref LeaderboardTable # Use !Ref with the Logical ID
+
+    Metadata:
+      DockerTag: python3.12-app-v1
+      DockerContext: .
+      Dockerfile: Dockerfile
+
+  # --- Update Scores Function ---
+  UpdateScoresFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Sub LeaderboardTable-${AppEnvironment}
+          DYNAMODB_GSI_NAME: DateLeaderboardIndex
+          APP_ENVIRONMENT: !Ref AppEnvironment
+      Events:
+        ScheduledUpdate:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 12 * * ? *)
+            Name: !Sub DailyScoreUpdateSchedule-${AppEnvironment}
+            Description: Trigger to update user scores daily
+            Enabled: False
+      ImageConfig:
+        Command: ["app.handlers.update_handler.handler"]
+      # --- Use SAM Policy Template ---
+      Policies:
+        - DynamoDBCrudPolicy: # Grants CRUD access to the table and its indexes
+            TableName: !Ref LeaderboardTable # Use !Ref with the Logical ID
+
+    Metadata:
+      DockerTag: python3.12-app-v1
+      DockerContext: .
+      Dockerfile: Dockerfile
+
+Outputs:
+  LeaderboardTableName:
+    Description: "Name of the DynamoDB Leaderboard Table"
+    Value: !Ref LeaderboardTable
+  LeaderboardTableArn:
+    Description: "ARN of the DynamoDB Leaderboard Table"
+    Value: !GetAtt LeaderboardTable.Arn
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL for the Leaderboard API"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
