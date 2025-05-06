@@ -24,36 +24,3 @@ class DailyLeaderboardResponse(BaseModel):
     total_count: int = Field(
         ..., description="Total number of entries in the leaderboard"
     )
-
-
-class UserMetadataItem(BaseModel):
-    """User metadata stored in DynamoDB."""
-
-    user_id: str = Field(..., description="User identifier", alias="userId")
-    last_fetched_timestamp: int = Field(
-        ..., description="Unix timestamp when user data was last fetched"
-    )
-    puzzles_attempted: int = Field(
-        ..., description="Number of puzzles attempted by user"
-    )
-    puzzles_solved: int = Field(
-        ..., description="Number of puzzles successfully solved by user"
-    )
-    solve_rate: float = Field(
-        ..., description="Ratio of solved puzzles to attempted puzzles"
-    )
-    current_streak: int = Field(
-        ..., description="Current streak of consecutive daily puzzles solved"
-    )
-
-    model_config = {"populate_by_name": True}
-
-
-class DailyScoreItem(BaseModel):
-    """Daily score record stored in DynamoDB."""
-
-    user_id: str = Field(..., description="User identifier", alias="userId")
-    date: str = Field(..., description="Date of the puzzle in YYYY-MM-DD format")
-    score: int = Field(..., description="User's score/time for the puzzle")
-
-    model_config = {"populate_by_name": True}
