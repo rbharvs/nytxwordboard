@@ -36,6 +36,9 @@ class InMemoryLeaderboardStorage(LeaderboardStorage):
         # Sort scores (lower is better)
         sorted_scores = sorted(date_scores, key=lambda s: s.score)
 
+        # Store the total count before limiting
+        total_count = len(sorted_scores)
+
         # Apply limit
         limited_scores = sorted_scores[: query.limit]
 
@@ -53,6 +56,6 @@ class InMemoryLeaderboardStorage(LeaderboardStorage):
         # Return success result
         return Success(
             GetDailyLeaderboardReply(
-                date=query.date, entries=entries, total_count=len(entries)
+                date=query.date, entries=entries, total_count=total_count
             )
         )

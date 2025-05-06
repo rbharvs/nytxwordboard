@@ -118,7 +118,7 @@ def test_get_daily_leaderboard_limit(
     assert isinstance(result, Success)
     reply = result.unwrap()
     assert len(reply.entries) == 3
-    assert reply.total_count == 3
+    assert reply.total_count == 5  # Total count should be all 5 scores
     assert reply.entries[0].user_id == "1"  # score 100
     assert reply.entries[1].user_id == "2"  # score 200
     assert reply.entries[2].user_id == "3"  # score 300
