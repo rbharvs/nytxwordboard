@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -35,8 +35,16 @@ class DetailsBase(BaseModel):
 class NotFoundDetails(DetailsBase):
     """Details for NotFoundError."""
 
-    resource_type: Optional[str] = Field(None, description="Type of resource not found")
-    resource_id: Optional[str] = Field(None, description="ID of resource not found")
+    resource_type: str = Field(..., description="Type of resource not found")
+    resource_id: str = Field(..., description="ID of resource not found")
+
+
+class StorageOperationDetails(DetailsBase):
+    """Details for storage operation errors."""
+
+    operation: str = Field(description="Storage operation that failed")
+    resource_type: str = Field(..., description="Type of resource being operated on")
+    raw_error: str = Field(..., description="Raw error details if available")
 
 
 class ApplicationError(BaseModel):
@@ -44,9 +52,9 @@ class ApplicationError(BaseModel):
 
     code: ErrorCode
     message: str
-    details: Optional[DetailsBase] = None
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    service_name: Optional[str] = None
+    details: DetailsBase
+    timestamp_utc: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    service_name: str
 
     model_config = ConfigDict(
         use_enum_values=True,
@@ -54,9 +62,33 @@ class ApplicationError(BaseModel):
     )
 
 
-class NotFoundError(ApplicationError):
+class StorageError(ApplicationError): ...
+
+
+class NotFoundStorageError(StorageError):
     """Error indicating a requested resource was not found."""
 
     code: Literal[ErrorCode.NOT_FOUND] = ErrorCode.NOT_FOUND
-    message: str = Field(default="Requested entity was not found.")
-    details: Optional[NotFoundDetails] = None
+    message: str = Field(default="Requested entity was not found in storage.")
+    details: NotFoundDetails
+
+
+class InternalStorageError(StorageError):
+    """Error indicating an internal storage error occurred."""
+
+    code: Literal[ErrorCode.INTERNAL] = ErrorCode.INTERNAL
+    message: str = Field(default="Internal storage error occurred.")
+
+
+class UnavailableStorageError(StorageError):
+    """Error indicating storage is unavailable."""
+
+    code: Literal[ErrorCode.UNAVAILABLE] = ErrorCode.UNAVAILABLE
+    message: str = Field(default="Storage is currently unavailable.")
+
+
+class InvalidArgumentStorageError(StorageError):
+    """Error indicating invalid arguments were provided to a storage operation."""
+
+    code: Literal[ErrorCode.INVALID_ARGUMENT] = ErrorCode.INVALID_ARGUMENT
+    message: str = Field(default="Invalid argument provided to storage operation.")
